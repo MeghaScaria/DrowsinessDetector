@@ -5,7 +5,7 @@ import mediapipe as mp
 
 from detectors.ear import get_ear
 from detectors.mar import get_mar
-
+frame_timestamp_ms = 0
 
 def calibrate(cap, face_landmarker, duration_seconds=5):
     """
