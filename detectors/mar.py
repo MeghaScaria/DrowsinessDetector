@@ -1,26 +1,73 @@
 from scipy.spatial import distance as dist
 
-# MediaPipe indices: inner lip top/bottom, and mouth corners
-UPPER_LIP = 13
-LOWER_LIP = 14
-LEFT_CORNER = 78
-RIGHT_CORNER = 308
+
+# MediaPipe mouth landmarks
+LEFT_CORNER = 61
+RIGHT_CORNER = 291
+
+# Vertical mouth pairs
+UPPER_LOWER_1 = (13, 14)
+UPPER_LOWER_2 = (82, 87)
+UPPER_LOWER_3 = (312, 317)
+
 
 def _landmark_to_pixel(landmark, frame_w, frame_h):
-    return (int(landmark.x * frame_w), int(landmark.y * frame_h))
+    return (
+        int(landmark.x * frame_w),
+        int(landmark.y * frame_h)
+    )
+
 
 def get_mar(landmarks, frame_w, frame_h):
     """
-    Returns Mouth Aspect Ratio (float). Higher value = mouth more open (yawning).
-    Typical closed-mouth range: 0.3-0.5, yawning usually pushes above 0.7-0.8
-    (you WILL need to tune this by watching your own values while yawning vs talking normally).
-    """
-    top = _landmark_to_pixel(landmarks[UPPER_LIP], frame_w, frame_h)
-    bottom = _landmark_to_pixel(landmarks[LOWER_LIP], frame_w, frame_h)
-    left = _landmark_to_pixel(landmarks[LEFT_CORNER], frame_w, frame_h)
-    right = _landmark_to_pixel(landmarks[RIGHT_CORNER], frame_w, frame_h)
+    Calculates Mouth Aspect Ratio (MAR).
 
-    vertical = dist.euclidean(top, bottom)
+    Uses three vertical mouth measurements averaged together
+    and normalizes them by the mouth width.
+
+    Higher MAR = more mouth opening.
+    """
+
+    left = _landmark_to_pixel(
+        landmarks[LEFT_CORNER],
+        frame_w,
+        frame_h
+    )
+
+    right = _landmark_to_pixel(
+        landmarks[RIGHT_CORNER],
+        frame_w,
+        frame_h
+    )
+
     horizontal = dist.euclidean(left, right)
 
-    return vertical / horizontal
+    vertical_distances = []
+
+    for upper_idx, lower_idx in [
+        UPPER_LOWER_1,
+        UPPER_LOWER_2,
+        UPPER_LOWER_3
+    ]:
+
+        upper = _landmark_to_pixel(
+            landmarks[upper_idx],
+            frame_w,
+            frame_h
+        )
+
+        lower = _landmark_to_pixel(
+            landmarks[lower_idx],
+            frame_w,
+            frame_h
+        )
+
+        vertical_distances.append(
+            dist.euclidean(upper, lower)
+        )
+
+    average_vertical = sum(vertical_distances) / len(
+        vertical_distances
+    )
+
+    return average_vertical / horizontal
